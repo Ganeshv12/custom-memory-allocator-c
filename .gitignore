@@ -1,0 +1,5 @@
+mem_allocator
+a.out
+*.o
+*.swp
+*~
