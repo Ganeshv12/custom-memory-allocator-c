@@ -1,15 +1,23 @@
 # Custom Static Memory Pool Allocator in C
 
-A deterministic dynamic memory allocator (`my_malloc` and `my_free`) built over a fixed-size static byte pool (`1024 bytes`) for embedded and bare-metal systems.
+A deterministic dynamic memory allocator (`my_malloc` and `my_free`) built over a fixed-size static byte pool (`1024 bytes`) for bare-metal embedded systems without OS heap syscalls (`sbrk`/`mmap`).
 
-## Features
-- **Static Memory Pool:** Operates inside a fixed `unsigned char memory_pool[1024]` array without relying on OS `sbrk()` or `mmap()` calls.
-- **First-Fit Block Splitting:** Splits oversized free blocks into an allocated region and a new remainder free block when space permits.
-- **Automatic Defragmentation (Coalescing):** Merges adjacent free blocks upon `my_free()` to prevent memory fragmentation.
-- **Heap Visualizer:** Built-in `print_memory_map()` diagnostic utility to inspect block headers, allocation status (`FREE` / `USED`), and payload sizes in real time.
+## 1. Memory Pool Layout
 
-## Build and Run
-1. Compile the project:
-   make
-2. Run the allocator test suite and visualizer:
-   ./mem_allocator
+    +---------------------------------------------------------------------+
+    |                    static memory_pool[1024]                         |
+    +------------------+------------------+------------------+------------+
+    |  Block Header 0  |  User Payload 0  |  Block Header 1  | Remainder  |
+    |  size: 100       |  (USED: 100 B)   |  size: 876       | (FREE)     |
+    |  is_free: 0      |                  |  is_free: 1      | 876 Bytes  |
+    +------------------+------------------+------------------+------------+
+
+## 2. Core Algorithms
+- **Initialization (`my_init`):** Formats the 1024-byte static array into a single initial free block (`1024 - sizeof(Block)` bytes).
+- **First-Fit & Splitting (`my_malloc`):** Scans the linked list for the first free block with `size >= requested`. If large enough to hold a new `Block` header plus at least 1 byte, splits the block into an allocated chunk and a remainder free block.
+- **Deallocation & Coalescing (`my_free`):** Marks the block free and merges adjacent free blocks (`current->is_free && current->next->is_free`) to prevent external fragmentation.
+- **Heap Visualizer (`print_memory_map`):** Walks the block list to display real-time block states (`FREE`/`USED`) and byte sizes.
+
+## 3. Build and Run
+1. Compile: `make`
+2. Run test suite: `./mem_allocator`
